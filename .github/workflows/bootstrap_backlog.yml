@@ -1,0 +1,97 @@
+name: Bootstrap Backlog and Project
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  issues: write
+  repository-projects: write
+
+jobs:
+  create-backlog:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Create backlog issues and Project board
+        uses: actions/github-script@v6
+        with:
+          script: |
+            // WARNING: Creating Projects may require a PAT with `projects` scope if GITHUB_TOKEN lacks permissions.
+            const owner = context.repo.owner;
+            const repo = context.repo.repo;
+            const projectName = 'Wallet Core Service Backlog';
+
+            // Define tasks array (title, body, labels)
+            const tasks = [
+              { title: 'Inicializar repositório e README básico', body: 'Criar `README.md` com descrição do projeto, instruções básicas de desenvolvimento local e links para `docs/`.', labels: ['docs','infra'] },
+              { title: 'Adicionar Dockerfile e .dockerignore para backend', body: 'Dockerfile multi-stage para o backend escolhido e `.dockerignore`.', labels: ['infra','docker'] },
+              { title: 'Configurar CI: lint, tests e build', body: 'Adicionar workflow de CI que execute lint e testes automatizados em PRs.', labels: ['ci','devops','tests'] },
+              { title: 'Especificar DDL do banco (PostgreSQL)', body: 'Gerar script SQL com tabelas `users`, `accounts`, `categories`, `transactions`, `recurrings`, `budgets`, `attachments`, `audit_logs` e índices essenciais.', labels: ['backend','database','sql'] },
+              { title: 'Adicionar migrations tool e primeira migration', body: 'Escolher e configurar Alembic/Flyway/Prisma Migrate/Knex e criar primeira migration baseada no DDL inicial.', labels: ['backend','database','migrations'] },
+              { title: 'Scaffold inicial do backend com FastAPI + Uvicorn', body: 'Projeto mínimo com rotas de healthcheck, configuração de DB e estrutura de pastas (app/, tests/, alembic/).', labels: ['backend','api'] },
+              { title: 'Implementar autenticação com JWT', body: 'Endpoints `POST /auth/register`, `POST /auth/login`, `POST /auth/refresh` e `POST /auth/forgot-password` e hashing seguro de senhas.', labels: ['backend','auth','security'] },
+              { title: 'Implementar endpoints CRUD para Account', body: 'GET/POST/GET(id)/PATCH/DELETE para contas; validar ownership e calcular saldo.', labels: ['backend','api'] },
+              { title: 'Implementar endpoints CRUD para Category', body: 'CRUD para categorias com suporte a hierarquia (parent_id) e categorias padrão.', labels: ['backend','api'] },
+              { title: 'Implementar endpoints CRUD para Transaction', body: 'Transações com validações, transferências entre contas (pares de transações), paginação e filtros.', labels: ['backend','api','transactions'] },
+              { title: 'Implementar importação de transações (CSV/OFX)', body: 'Endpoint `POST /transactions/import` com preview, mapeamento de colunas, deduplicação e job assíncrono.', labels: ['backend','import'] },
+              { title: 'Implementar endpoints de relatório', body: 'Endpoints para summary/monthly e breakdown por categoria para alimentar o dashboard.', labels: ['backend','reports'] },
+              { title: 'Endpoint para marcar transações como reconciliadas', body: 'Reconciliar transações e sugerir match com extrato importado.', labels: ['backend','api'] },
+              { title: 'Implementar model e endpoints para transações recorrentes', body: 'CRUD para templates de recorrência e job que gera transações futuras evitando duplicatas.', labels: ['backend','scheduler'] },
+              { title: 'Implementar budgets endpoints', body: 'CRUD para Budget e cálculo de progresso e alertas por categoria/periodicidade.', labels: ['backend','api'] },
+              { title: 'Scaffold frontend (React + TypeScript)', body: 'Projeto frontend com autenticação básica, roteamento e layout inicial.', labels: ['frontend'] },
+              { title: 'Tela Dashboard com dados mock', body: 'Componentes para saldo consolidado, receitas vs despesas e top categorias (mock data).', labels: ['frontend','ui'] },
+              { title: 'Lista de transações com filtros', body: 'Lista paginada, filtros por data/conta/categoria e pesquisa por texto.', labels: ['frontend','ui'] },
+              { title: 'Formulário para criar/editar transações', body: 'Inputs para valor, data, conta, categoria, tags, anexos e opção de recorrência.', labels: ['frontend','ui'] },
+              { title: 'Unit tests para cálculo de saldo e regras', body: 'Cobertura para regras críticas: cálculo de saldo, transferências e arredondamentos.', labels: ['tests','backend'] },
+              { title: 'Integration tests para API', body: 'Testes de integração cobrindo autenticação, criação de conta, transações e relatórios.', labels: ['tests','integration'] },
+              { title: 'E2E tests com Cypress', body: 'E2E tests para fluxos críticos: login, criar transação e gerar relatórios.', labels: ['tests','frontend'] },
+              { title: 'Adicionar Sentry para captura de erros', body: 'Integrar Sentry no backend para captura de exceções e performance tracing.', labels: ['infra','monitoring'] },
+              { title: 'Instrumentar métricas e configurar alertas', body: 'Exportar métricas básicas (requests, latência, error rate) e criar alertas.', labels: ['infra','monitoring'] },
+              { title: 'Configurar backups automáticos do Postgres', body: 'Scripts/config para backups diários do Postgres com retenção e testes de restore.', labels: ['infra','backup'] },
+              { title: 'Gerar especificação OpenAPI', body: 'Documentar endpoints principais (auth, accounts, transactions, reports) e disponibilizar Swagger.', labels: ['docs','api'] },
+              { title: 'Definir milestones para MVP', body: 'Criar milestones e agrupar issues essenciais para entrega do MVP.', labels: ['planning'] },
+              { title: 'Checklist de segurança', body: 'Realizar checklist: proteção de segredos, validação de inputs, rate-limiting e CSP.', labels: ['security','review'] }
+            ];
+
+            // Try to create a repository Project (classic) and get its first column
+            let projectId = null;
+            let columnId = null;
+            try {
+              const proj = await github.request('POST /repos/{owner}/{repo}/projects', { owner, repo, name: projectName, body: 'Backlog generated by workflow' });
+              projectId = proj.data.id;
+              core.info(`Created project id=${projectId}`);
+              const cols = await github.request('GET /projects/{project_id}/columns', { project_id: projectId });
+              if (cols.data && cols.data.length > 0) {
+                columnId = cols.data[0].id;
+              } else {
+                // create a default column
+                const newCol = await github.request('POST /projects/{project_id}/columns', { project_id: projectId, name: 'To do' });
+                columnId = newCol.data.id;
+              }
+            } catch (err) {
+              core.info('Project creation failed or insufficient permissions: ' + err.message);
+              core.info('Issues will still be created; add to project manually or run workflow with PAT that has `repo` and `projects` scopes.');
+            }
+
+            // Create issues and add to project column (if available)
+            for (const t of tasks) {
+              try {
+                const issue = await github.rest.issues.create({ owner, repo, title: t.title, body: t.body, labels: t.labels });
+                core.info(`Created issue #${issue.data.number}: ${t.title}`);
+                if (columnId) {
+                  try {
+                    await github.request('POST /projects/columns/{column_id}/cards', { column_id: columnId, content_id: issue.data.id, content_type: 'Issue' });
+                    core.info(`Added issue #${issue.data.number} to project column`);
+                  } catch (e) {
+                    core.info('Failed to add card to project column: ' + e.message);
+                  }
+                }
+              } catch (e) {
+                core.info('Failed to create issue: ' + e.message);
+              }
+            }
+
+            core.info('Backlog bootstrap finished.');
