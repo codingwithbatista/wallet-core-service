@@ -12,15 +12,69 @@ Visão rápida:
 
 Se você prefere ler em Inglês, clique em "English" no topo ou abra `README.en.md`.
 
-### Como usar (rápido)
-1. Instale dependências e configure o ambiente (ver `docs/` para detalhes).
-2. Configure credenciais e chaves (SSH/GitHub) se necessário.
-3. Rode os serviços localmente conforme o stack escolhido.
+### Como usar (rápido) — NestJS + TypeScript
 
-### Observação sobre idiomas
+Este projeto será desenvolvido usando **NestJS** com **TypeScript** (Node 18+). As instruções abaixo assumem que você está no diretório raiz do projeto.
+
+Pré-requisitos:
+
+- Node.js 18+ instalado
+- `npm` ou `pnpm`/`yarn`
+- PostgreSQL (local ou via Docker)
+
+Instalação e execução (exemplo com `npm`):
+
+```bash
+# instalar dependências
+npm install
+
+# rodar em modo de desenvolvimento (usando Nest CLI)
+npx nest start --watch
+
+# ou, se você tiver scripts no package.json (geralmente gerados pelo Nest CLI):
+npm run start:dev
+
+# build para produção
+npm run build
+npm run start
+```
+
+Adicionar Nest CLI globalmente (opcional):
+
+```bash
+npm i -g @nestjs/cli
+# criar novo projeto com CLI (se preferir scaffold automático)
+npx @nestjs/cli new backend --package-manager npm
+```
+
+Banco de dados e ORM (opcional):
+
+- Recomendado: **Prisma** (moderno, tipado). Exemplo de passos:
+
+```bash
+npm install prisma --save-dev
+npm install @prisma/client
+npx prisma init
+# configurar DATABASE_URL em .env
+npx prisma migrate dev --name init
+```
+
+- Alternativa: TypeORM (integrado ao Nest com `@nestjs/typeorm`).
+
+Arquivo de exemplo `.env` (sugestão):
+
+```env
+DATABASE_URL=postgresql://user:password@localhost:5432/wallet_db
+JWT_SECRET=replace-me-with-secure-random
+```
+
+Observação sobre idiomas
+
 Este README mostra por padrão a versão em Português. Para ler em Inglês use o link no topo (`README.en.md`).
 
-Se quiser que eu gere um scaffold para NestJS + TypeScript (incluindo `package.json`, `tsconfig.json` e `docker-compose.yml` para Postgres), diga e eu crio os arquivos iniciais.
+Scaffold
+
+Se quiser, posso gerar um scaffold inicial com NestJS + TypeScript, `package.json`, `tsconfig.json`, um módulo `app` básico, e um `docker-compose.yml` com Postgres — diga se prefere que eu crie também suporte a Prisma ou TypeORM.
 
 ### Estrutura relevante
 - `docs/` — requisitos, backlog e documentação inicial.
